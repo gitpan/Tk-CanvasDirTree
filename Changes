@@ -1,6 +1,11 @@
 Revision history for Perl extension Tk::CanvasDirTree.
 
-0.01  Wed Apr  5 14:49:22 2006
+0.01  Wed Apr  5  2006
 	- original version; created by h2xs 1.23 with options
 		-AXn Tk::CanvasDirTree
+
+0.02  Wed Apr 12, 2006
+       - made background image scroll automatically to give appearance
+            of a stationary background ( optional with -imagescroll=>1 ) 
+       - fixed a possible memory leak due to image rebuilding
 

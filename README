@@ -1,4 +1,4 @@
-Tk-CanvasDirTree version 0.01
+Tk-CanvasDirTree version 0.02
 =============================
 
 zentara <zentara@zentara.net> - The Distribution Maintainer
@@ -43,7 +43,7 @@ This module requires these other modules and libraries:
 COPYRIGHT AND LICENCE
 
 
-Copyright (C) April 5, 2006 by Joseph B.Milosch a.k.a zentara
+Copyright (C) April 11, 2006 by Joseph B.Milosch a.k.a zentara
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
@@ -55,14 +55,14 @@ HISTORY:
   Version 0.01 
       o first release
 
+  Version 0.02
+      o made background image scroll automatically to give appearance
+        of a stationary background ( optional with -imagescroll=>1 ) 
 
 ToDo:
 
 - make configurable blinking indicators
-- possibly look at making the background image scroll
-  with the scrollbar, to make it appear staionary as the
-  text scrolls
-
+- make method to open a directory from the program
 
 
 

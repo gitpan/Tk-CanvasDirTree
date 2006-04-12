@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
-use lib 'blib/lib';
 use Tk;
+use lib 'lib';
 use Tk::CanvasDirTree;
 
 my $mw = MainWindow->new();

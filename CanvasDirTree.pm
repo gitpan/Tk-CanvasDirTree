@@ -1,6 +1,6 @@
 package Tk::CanvasDirTree;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 use warnings;
 use strict;
 
@@ -80,12 +80,13 @@ $self->idletasks;
 } #end config changed   
     
 #################################################################
+
 sub Populate {
    my ($self, $args) = @_;
   #-------------------------------------------------------------------
    #take care of args which don't belong to the SUPER, see Tk::Derived
    foreach my $extra ('backimage','imx','imy','font','indfilla',
-                      'indfilln','fontcolorn','fontcolora') {
+                      'indfilln','fontcolorn','fontcolora','floatback') {
        my $xtra_arg = delete $args->{ "-$extra" };  #delete and read same time 
      if( defined $xtra_arg ) { $self->{$extra} = $xtra_arg }
    }
@@ -101,7 +102,8 @@ sub Populate {
      -backimage => [ 'PASSIVE', undef, undef, undef],
      -imx => [ 'PASSIVE', undef, undef, undef],
      -imy => [ 'PASSIVE', undef, undef, undef],
-     -font =>[ 'PASSIVE', undef, undef, undef]
+     -font => [ 'PASSIVE', undef, undef, undef],
+     -floatback => [ 'PASSIVE', undef, undef, undef],
     ); 
     
      #set some defaults
@@ -113,8 +115,8 @@ sub Populate {
      $self->{'imx'} ||= 0; 
      $self->{'imy'} ||= 0;
      $self->{'font'} ||= 'system';
-
-
+     $self->{'floatback'} ||= 0;
+       
 #---determine font spacing by making a capital W---
    my $fonttest =  $self->createText(0,0,
               -fill    => 'black',
@@ -127,10 +129,46 @@ sub Populate {
     $self->{'f_height'} = $by1 - $by;
     $self->delete($fonttest);
 #--------------------------------------------------
-
    $self->make_trunk('.', 0); 
- } # end Populate
 
+   $self->after(1,sub{ $self->_set_bars() });
+
+} # end Populate
+
+#######################################################################
+sub _set_bars {
+   my $self = shift;
+   my $y = $self->parent->Subwidget('yscrollbar');
+   $self->{'real_can'} =  $self->parent->Subwidget('scrolled');
+   $self->idletasks;
+   $y->configure( -command => [\&yscrollcallback,$self] );
+
+    #account for any padding 
+    $self->xviewMoveto(0);
+    $self->yviewMoveto(0);
+    $self->update;
+}
+######################################################################
+sub yscrollcallback{
+    #restore original function
+    my ($self, @set) = @_;
+    $self->yview(@set);
+
+  #if you want the floating background
+  if( $self->{'floatback'} == 1 ){ 
+    my($z,$z1) = $self->yview;
+    my(undef,undef,undef,$sry) = $self->cget('scrollregion');
+
+    my $real_can_h = $self->{'real_can'}->reqheight; 
+    my $div = $sry/$real_can_h;  
+   
+    $self->coords($self->{'background'}, 
+                 $self->{'imx'},  
+                 $self->{'imy'} + $div *$z * $real_can_h );
+    $self->update;
+  }
+
+}
 ########################################################
 sub adjust_background{
    my ($self, $photo_obj ) = @_;   
@@ -142,7 +180,7 @@ sub adjust_background{
    $self->{'bimg_h'} = $self->{'bimage'}->height;
 
    $self->{'background'} = $self->createImage( 
-         $self->{'imx'}, $self->{'imy'},
+         $self->{'imx'} , $self->{'imy'},
           -anchor => 'nw',
          -image  => $self->{'bimage'},
     );
@@ -169,13 +207,6 @@ sub set_background{
 ##############################################################
 sub get_subdirs{
   my ($self, $dir) = @_;
-
-
-   if( length $self->{'backimage'} > 0 ){
-       $self->set_background( 
-            $self->{'backimage'},$self->{'imx'}, $self->{'imy'}
-	    );  
-     }
 
     my @subdirs;
     opendir my $dh, $dir or warn $!;
@@ -208,6 +239,13 @@ sub check_depth_2{
 sub make_trunk{
    my ($self, $dir, $level) = @_;
    my $x = 5; my $y = $self->{'f_height'};
+
+#make background image is needed
+   if( length $self->{'backimage'} > 0 ){
+       $self->set_background( 
+            $self->{'backimage'},$self->{'imx'}, $self->{'imy'}
+	    );  
+     }
 
    my @subdirs = $self->get_subdirs( $dir  ); 
    my $abs_root = File::Spec->rel2abs( $dir );
@@ -273,10 +311,7 @@ sub make_trunk{
    }
 
     my ($bx,$by,$bx1,$by1)= $self->bbox('all');
-    
-    $self->configure(
-                -scrollregion =>[0,0,$bx1,$by1]
-	     );
+    $self->configure(-scrollregion =>[0,0,$bx1,$by1] );
     
 } # end make_trunk 
 ############################################################################    
@@ -391,14 +426,14 @@ sub add_branch{
 
   $self->Unbusy;
 
-    ($bx,$by,$bx1,$by1)= $self->bbox('list');
-    $self->configure(
-                -scrollregion =>[0,0,$bx1,$by1],
-	     );
+ (undef,undef,undef,$by1)= $self->bbox('list'); # get y max
+ (undef,undef,$bx1,undef)= $self->bbox('all');  # get x max
+  $self->configure( -scrollregion =>[0,0,$bx1,$by1] );
 
 # a possible auto-scroll feature to open sub dirs
 #    $self->yviewMoveto( ($y_edge - .5 * $self->{'f_height'})/$by1   );
 
+$self->yscrollcallback(); #to keep background image aligned
 	
 } # end add_branch 
 ############################################################################    
@@ -438,27 +473,26 @@ sub close_branch{
    }
 
 #adjust scroll region
-   ($bx,$by,$bx1,$by1)= $self->bbox('list');
-    $self->configure(
-                -scrollregion =>[0,0,$bx1,$by1],
-	     );
+ (undef,undef,undef,$by1)= $self->bbox('list'); # get y max
+ (undef,undef,$bx1,undef)= $self->bbox('all');  # get x max
+  $self->configure( -scrollregion =>[0,0,$bx1,$by1] );
+ 
+ $self->yscrollcallback(); #to keep background image aligned
   
 }
 ##############################################################################
 sub make_space{
  my ($self, $y, $amount) = @_;
-  
-  my ($bx,$by,$bx1,$by1)= $self->bbox('all');
  
+  my ($bx,$by,$bx1,$by1)= $self->bbox('all');
   my @items = $self->find('enclosed',$bx,$y,$bx1,$by1 + $self->{'f_height'}); 
-  
+
   foreach my $move (@items){
-      $self->move($move,0,$amount);
+        $self->move($move,0,$amount);
    }
 
 }
 ##############################################################################
-
 
 sub rotate_poly {
     my ($self, $id, $angle, $midx, $midy) = @_;
@@ -528,7 +562,7 @@ sub _get_CM {
 
     return split ' ', sprintf "%.0f %0.f" => $x/$area, $y/$area;
 }
-
+####################################################################
 1;
 
 __END__
@@ -550,6 +584,8 @@ Tk::CanvasDirTree - Perl Derived Canvas widget for browsing Directory Trees
 #           -backimage => $bunny,            #or Tk::Photo object data 
             -imx => 200,           # image position relative to nw corner 
             -imy => 10,            # to place nw corner of image 
+            -floatback => 1,  # makes background appear stationary in y 
+	                      # direction, defaults to 0     
             -font => 'big',        # defaults to system 
 #           -fontcolorn => 'cyan', # defaults to black 
 #           -fontcolora => 'lightseagreen', #defaults to red 
@@ -584,6 +620,8 @@ an intuitive graphical interface to selecting them. It only recurses 2 levels
 at a time, so it is efficient on deeply nested trees. 
 It is similar in appearance to the Gtk2 TreeView. Colors and fonts are
 configurable, as well as a background image (with configurable location placement).
+Also with -floatback => 1, the background image will appear to stay stationary
+as the y scrollbar is moved.
 Due to the wide variety of possible color schemes, creating a pleasing 
 background image is left to you. See the included scripts in the scripts
 directory, for examples to make charcoal or faded backgrounds.
@@ -604,6 +642,7 @@ It contains additional configuration options:
     -backimage => $bunny,            # or Tk::Photo object data 
     -imx => 200,                     # image position relative to nw corner 
     -imy => 10,                      # to place nw corner of image 
+    -floatback => 1,                 # floating background, defaults to 0
     -font => 'big',                  # defaults to system 
     -fontcolorn => 'cyan',           # defaults to black 
     -fontcolora => 'lightseagreen',  # defaults to red 
@@ -627,7 +666,7 @@ See  http://zentara.net/perlplay  for other perl script examples.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C)April 5, 2006 by Joseph B. Milosch a.k.a zentara
+Copyright (C)April 14, 2006 by Joseph B. Milosch a.k.a zentara
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
