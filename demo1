@@ -1,0 +1,55 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use lib 'blib/lib';
+use Tk;
+use Tk::CanvasDirTree;
+
+my $mw = MainWindow->new();
+$mw->geometry('+200+50');
+
+$mw->fontCreate('big',
+          -family=>'arial',
+          -weight=>'bold',
+          -size=>int(-18*18/14));
+
+my $frame = $mw->Frame()->pack(-expand=>1,-fill=>'both');
+
+my $ztree = $frame->Scrolled('CanvasDirTree',
+            -bg =>'white',
+            -width =>400,  
+	    -height =>400, 
+	    -backimage => 'scripts/madhat-charc-light.jpg',  #either a file
+#	    -backimage => $bunny,  #or Tk::Photo object data
+	    -imx => 100,           # position relative to nw corner
+	    -imy => 60,            # to place nw corner of image
+	    -font => 'big',        # defaults to system
+#	    -fontcolorn => 'lightseagreen', # defaults to black
+#	    -fontcolora => 'cyan', #defaults to red
+#	    -indfilln => 'hotpink',         #defaults to blue   
+#	    -indfilla => 'orange',          #defaults to red
+            -scrollbars =>'osow',
+            -borderwidth => 1,
+
+	    )->pack(-side=>'left',-fill=>'both', -expand=>1); 
+
+my $text = $frame->Scrolled('Text',
+                       -bg=>'white',
+		       -width => 30,
+		       -scrollbars =>'osoe',
+	)->pack(-side=>'right',-fill=>'both',-expand=>1);
+
+my $button = $mw->Button(-text=>'Exit',-command=>sub{exit})->pack();
+
+$ztree->bind('<ButtonPress-1>', sub{   
+               my $selected = $ztree->get_selected();
+
+	        if(length $selected){
+	            $text->insert('end',"$selected\n");
+	            $text->see('end');
+	         }
+	   });
+
+
+
+MainLoop;
