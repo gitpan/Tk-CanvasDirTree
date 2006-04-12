@@ -1,4 +1,4 @@
-Tk-CanvasDirTree version 0.02
+Tk-CanvasDirTree version 0.03
 =============================
 
 zentara <zentara@zentara.net> - The Distribution Maintainer
@@ -57,7 +57,12 @@ HISTORY:
 
   Version 0.02
       o made background image scroll automatically to give appearance
-        of a stationary background ( optional with -imagescroll=>1 ) 
+        of a stationary background ( optional with -floatback=>1 ) 
+
+  Version 0.03
+      o small documentation fixes 
+      o added demo for floating background 
+ 
 
 ToDo:
 
